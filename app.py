@@ -9,6 +9,27 @@ import tempfile
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB
 
+
+def get_yt_dlp_options():
+    options = {
+        "format": "bestaudio/best",
+        "quiet": True,
+        "noplaylist": True,
+        "restrictfilenames": False,
+        "no_warnings": True,
+    }
+
+    browser = os.environ.get("YT_COOKIES_FROM_BROWSER", "").strip()
+    cookie_file = os.environ.get("YT_COOKIE_FILE", "").strip()
+
+    if browser:
+        options["cookiesfrombrowser"] = (browser,)
+    if cookie_file:
+        options["cookies"] = cookie_file
+
+    return options
+
+
 HTML = """
 <!doctype html>
 <html lang="en">
@@ -125,14 +146,8 @@ def convert_to_mp3(source_path):
 
 def download_media_from_url(url):
     temp_dir = tempfile.mkdtemp(prefix="media_ripper_")
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "quiet": True,
-        "noplaylist": True,
-        "restrictfilenames": False,
-        "no_warnings": True,
-        "outtmpl": os.path.join(temp_dir, "%(title)s.%(ext)s"),
-    }
+    ydl_opts = get_yt_dlp_options()
+    ydl_opts["outtmpl"] = os.path.join(temp_dir, "%(title)s.%(ext)s")
 
     try:
         with YoutubeDL(ydl_opts) as ydl:
